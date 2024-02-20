@@ -15,13 +15,23 @@ function Greeting({initialName = ''}) {
   // The callback should set the `name` in localStorage.
   // 💰 window.localStorage.setItem('name', name)
 
-  const useLocalStorageState = (key, initialValue='') => {
+  const useLocalStorageState = (key, initialValue='', {
+    serialize = JSON.stringify,
+    deserialize = JSON.parse,
+  } = {}) => {
     const valInLocalStorage = window.localStorage.getItem(key);
-    const [variable, setVariable] = React.useState(()=> (valInLocalStorage?JSON.parse(valInLocalStorage):initialValue));
-     React.useEffect(()=>{
-      console.log( JSON.stringify({[key]:variable}))
-    window.localStorage.setItem(key, JSON.stringify(variable));
-  }, [key, variable]);
+    const [variable, setVariable] = React.useState(()=> (valInLocalStorage?deserialize(valInLocalStorage):(typeof initialValue === 'function'?initialValue():initialValue)));
+     
+    const prevKeyRef = React.useRef(key);
+
+    React.useEffect(()=>{
+      const prevKey = prevKeyRef.current;
+      if(prevKey !== key) window.localStorage.removeItem(prevKey);
+      
+      prevKeyRef.current = key;
+
+    window.localStorage.setItem(key, serialize(variable));
+  }, [key, serialize, variable]);
   return [variable, setVariable];
 }
 
