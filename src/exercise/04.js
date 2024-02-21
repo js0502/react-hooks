@@ -14,22 +14,8 @@ import * as React from 'react'
 
 import { useLocalStorageState } from '../utils';
 
-function History({histories, setSquares, current, setCurrent}){
 
-  return <>
-  <ol key='step'>
-    {histories.map(({step,history}) => <li><button disabled={current==step} onClick={()=>{
-      setCurrent(step);
-      setSquares(history);
-      }}>Go to {step===1?'game start':`#${step-1}`} {current==step?'(current)':''}</button></li>)}
-  </ol>
-  </>
-
-
-
-}
-
-function Board({squares, setSquares, histories, setHistories, current, setCurrent}) {
+function Board({squares, onClick}) {
   // 🐨 squares is the state for this component. Add useState for squares
 
   // 🐨 We'll need the following bits of derived state:
@@ -39,59 +25,13 @@ function Board({squares, setSquares, histories, setHistories, current, setCurren
   // 💰 I've written the calculations for you! So you can use my utilities
   // below to create these variables
   console.log(squares)
-  let nextValue = calculateNextValue(squares)
-  let winner = calculateWinner(squares);
-  let status = calculateStatus(winner,squares,nextValue);
   // This is the function your square click handler will call. `square` should
   // be an index. So if they click the center square, this will be `4`.
-  function selectSquare(square) {
-    // 🐨 first, if there's already a winner or there's already a value at the
-    // given square index (like someone clicked a square that's already been
-    // clicked), then return early so we don't make any state changes
-    //
-    if(winner!=null || squares[square]!=null) return;
-    // 🦉 It's typically a bad idea to mutate or directly change state in React.
-    // Doing so can lead to subtle bugs that can easily slip into production.
-    //
-    // 🐨 make a copy of the squares array
-    // 💰 `[...squares]` will do it!)
-    //
-    const copySquares = [...squares];
-    // 🐨 set the value of the square that was selected
-    // 💰 `squaresCopy[square] = nextValue`
-    //
-    copySquares[square] = nextValue;
-    // 🐨 set the squares to your copy
-
-    nextValue = calculateNextValue(copySquares);
-    winner = calculateWinner(copySquares);
-    status = calculateStatus(winner,copySquares,nextValue);
-    const tempHist = histories.slice(0,current)
-    tempHist.push({step:current+1, history:copySquares});
-    setCurrent(current+1);
-    setHistories(tempHist);
-    console.log(histories.length)
-    setSquares(copySquares);
-    // setNextValue(calculateNextValue(squares));
-    // const winnerCheck = calculateWinner(squares);
-    // if(winnerCheck!=null) setWinner(winnerCheck);
-    // setStatus(calculateStatus(winner,squares,nextValue));
-  }
-
-  function restart() {
-    // 🐨 reset the squares
-    // 💰 `Array(9).fill(null)` will do it!
-    let tempSquares = Array(9).fill(null);
-    nextValue = calculateNextValue(tempSquares)
-    winner = calculateWinner(tempSquares);
-    status = calculateStatus(winner,tempSquares,nextValue);
-    setHistories([{step:1, history:Array(9).fill(null)}]);
-    setSquares(tempSquares);
-  }
+ 
 
   function renderSquare(i) {
     return (
-      <button className="square" onClick={() => selectSquare(i)}>
+      <button className="square" onClick={() => onClick(i)}>
         {squares[i]}
       </button>
     )
@@ -99,9 +39,7 @@ function Board({squares, setSquares, histories, setHistories, current, setCurren
 
   return (
     <div>
-      {/* 🐨 put the status in the div below */}
-      <div className="status">{status}</div>
-      
+      {/* 🐨 put the status in the div below */}      
       <div className="board-row">
         {renderSquare(0)}
         {renderSquare(1)}
@@ -117,23 +55,74 @@ function Board({squares, setSquares, histories, setHistories, current, setCurren
         {renderSquare(7)}
         {renderSquare(8)}
       </div>
-      <button className="restart" onClick={restart}>
-        restart
-      </button>
     </div>
   )
 }
 
 function Game() {
-  const [histories, setHistories] =useLocalStorageState('histories',[{step:1, history:Array(9).fill(null)}]);
-  const [squares, setSquares] = useLocalStorageState('squares',()=>Array(9).fill(null));
-  const [current, setCurrent] = useLocalStorageState('current',1);
+  const [histories, setHistories] =useLocalStorageState('histories',[Array(9).fill(null)]);
+  const [current, setCurrent] = useLocalStorageState('current',0);
+  const squares = histories[current];
+  console.log(histories[current])
+
+  const nextValue = calculateNextValue(squares)
+  const winner = calculateWinner(squares);
+  const status = calculateStatus(winner,squares,nextValue);
+
+  function selectSquare(square) {
+    // 🐨 first, if there's already a winner or there's already a value at the
+    // given square index (like someone clicked a square that's already been
+    // clicked), then return early so we don't make any state changes
+    //
+    const squares = histories[current];
+    if(winner!=null || squares[square]!=null) return;
+    // 🦉 It's typically a bad idea to mutate or directly change state in React.
+    // Doing so can lead to subtle bugs that can easily slip into production.
+    //
+    // 🐨 make a copy of the squares array
+    // 💰 `[...squares]` will do it!)
+    //
+    const copySquares = [...squares];
+    // 🐨 set the value of the square that was selected
+    // 💰 `squaresCopy[square] = nextValue`
+    //
+    copySquares[square] = nextValue;
+    // 🐨 set the squares to your copy
+    const tempHist = histories.slice(0,current+1)
+    setHistories([...tempHist, copySquares]);
+    // setCurrent(current+1);
+    setCurrent(tempHist.length);
+
+
+    // setNextValue(calculateNextValue(squares));
+    // const winnerCheck = calculateWinner(squares);
+    // if(winnerCheck!=null) setWinner(winnerCheck);
+    // setStatus(calculateStatus(winner,squares,nextValue));
+  }
+
+   
+
+  function restart() {
+    // 🐨 reset the squares
+    // 💰 `Array(9).fill(null)` will do it!
+    setHistories([Array(9).fill(null)]);
+    setCurrent(0);
+  }
+  const moves = histories.map((history, step) => <li key={step}><button disabled={current==step} onClick={()=>{
+    setCurrent(step);
+    }}>Go to {step===0?'game start':`#${step}`} {current==step?'(current)':''}</button></li>)
 
   return (
     <div className="game">
       <div className="game-board">
-        <Board  squares={squares} setSquares={(value)=>setSquares(value)} histories={histories} setHistories={(val)=>setHistories(val)} current={current} setCurrent={(val)=>setCurrent(val)}/>
-        <History histories={histories} setSquares={(val)=>setSquares(val)} current={current} setCurrent={(val)=>setCurrent(val)}></History>
+        <Board onClick={selectSquare} squares={histories[current]} />
+        <button className="restart" onClick={restart}>
+          restart
+        </button>
+      </div>
+      <div className="game-info">
+        <div>{status}</div>
+        <ol>{moves}</ol>
       </div>
     </div>
   )
