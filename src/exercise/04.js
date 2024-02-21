@@ -3,9 +3,34 @@
 
 import * as React from 'react'
 
-function Board() {
+// function useLocalStorageState(key, initalValue) {
+//     const storedValue = window.localStorage.getItem(key);
+//     const [value, setValue] = React.useState(storedValue?JSON.parse(storedValue): initalValue);
+//     React.useEffect(()=>{
+//       window.localStorage.setItem(key, JSON.stringify(value));
+//     }, [key, value]);
+//     return [value, setValue];
+// }
+
+import { useLocalStorageState } from '../utils';
+
+function History({histories, setSquares, current, setCurrent}){
+
+  return <>
+  <ol key='step'>
+    {histories.map(({step,history}) => <li><button disabled={current==step} onClick={()=>{
+      setCurrent(step);
+      setSquares(history);
+      }}>Go to {step===1?'game start':`#${step-1}`} {current==step?'(current)':''}</button></li>)}
+  </ol>
+  </>
+
+
+
+}
+
+function Board({squares, setSquares, histories, setHistories, current, setCurrent}) {
   // 🐨 squares is the state for this component. Add useState for squares
-  const [squares, setSquares] = React.useState(()=>Array(9).fill(null));
 
   // 🐨 We'll need the following bits of derived state:
   // - nextValue ('X' or 'O')
@@ -13,6 +38,7 @@ function Board() {
   // - status (`Winner: ${winner}`, `Scratch: Cat's game`, or `Next player: ${nextValue}`)
   // 💰 I've written the calculations for you! So you can use my utilities
   // below to create these variables
+  console.log(squares)
   let nextValue = calculateNextValue(squares)
   let winner = calculateWinner(squares);
   let status = calculateStatus(winner,squares,nextValue);
@@ -40,6 +66,11 @@ function Board() {
     nextValue = calculateNextValue(copySquares);
     winner = calculateWinner(copySquares);
     status = calculateStatus(winner,copySquares,nextValue);
+    const tempHist = histories.slice(0,current)
+    tempHist.push({step:current+1, history:copySquares});
+    setCurrent(current+1);
+    setHistories(tempHist);
+    console.log(histories.length)
     setSquares(copySquares);
     // setNextValue(calculateNextValue(squares));
     // const winnerCheck = calculateWinner(squares);
@@ -54,6 +85,7 @@ function Board() {
     nextValue = calculateNextValue(tempSquares)
     winner = calculateWinner(tempSquares);
     status = calculateStatus(winner,tempSquares,nextValue);
+    setHistories([{step:1, history:Array(9).fill(null)}]);
     setSquares(tempSquares);
   }
 
@@ -69,6 +101,7 @@ function Board() {
     <div>
       {/* 🐨 put the status in the div below */}
       <div className="status">{status}</div>
+      
       <div className="board-row">
         {renderSquare(0)}
         {renderSquare(1)}
@@ -92,10 +125,15 @@ function Board() {
 }
 
 function Game() {
+  const [histories, setHistories] =useLocalStorageState('histories',[{step:1, history:Array(9).fill(null)}]);
+  const [squares, setSquares] = useLocalStorageState('squares',()=>Array(9).fill(null));
+  const [current, setCurrent] = useLocalStorageState('current',1);
+
   return (
     <div className="game">
       <div className="game-board">
-        <Board />
+        <Board  squares={squares} setSquares={(value)=>setSquares(value)} histories={histories} setHistories={(val)=>setHistories(val)} current={current} setCurrent={(val)=>setCurrent(val)}/>
+        <History histories={histories} setSquares={(val)=>setSquares(val)} current={current} setCurrent={(val)=>setCurrent(val)}></History>
       </div>
     </div>
   )
